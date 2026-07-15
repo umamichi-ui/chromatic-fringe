@@ -1,6 +1,6 @@
 {
   "name": "@umamichi-ui/chromatic-fringe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pointer-driven chromatic fringe (lens-like RGB edge split) for Umamichi UI borders.",
   "type": "module",
   "license": "MIT",

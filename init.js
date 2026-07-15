@@ -14,6 +14,8 @@ const DEFAULT_MAX_OFFSET_PX = 1.75;
 const DEFAULT_REF_DIAGONAL_FRACTION = 0.35;
 const DEFAULT_TOUCH_EASE = 0.14;
 const SETTLE_EPS_SQ = 0.25;
+/** Keep re-applying while CSS `--lens-focus-depth` transitions. */
+const DEFAULT_FOCUS_DEPTH_ANIM_MS = 320;
 
 function clearLensVars(element) {
 	element.style.removeProperty('--lens-ox');
@@ -50,6 +52,13 @@ function ensureBoxClasses(element, options) {
 	}
 }
 
+function readFocusDepth() {
+	const raw = getComputedStyle(document.documentElement).getPropertyValue('--lens-focus-depth').trim();
+	const value = Number(raw);
+
+	return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
 /**
  * Pointer-driven chromatic fringe on opt-in borders.
  * @param {import('./init.d.ts').ChromaticFringeOptions} [options]
@@ -78,9 +87,12 @@ export function initChromaticFringe(options = {}) {
 	const maxOffsetPx = options.maxOffsetPx ?? DEFAULT_MAX_OFFSET_PX;
 	const refDiagonalFraction = options.refDiagonalFraction ?? DEFAULT_REF_DIAGONAL_FRACTION;
 	const touchEase = options.touchEase ?? DEFAULT_TOUCH_EASE;
+	const focusDepthAnimMs = options.focusDepthAnimMs ?? DEFAULT_FOCUS_DEPTH_ANIM_MS;
 	const rootAttributeFilter = options.rootAttributeFilter ?? [];
 	const isMarkedTargetActive = options.isMarkedTargetActive;
 	const markedIgnoreAriaHidden = options.markedIgnoreAriaHidden;
+	const isFocusPlaneTarget = options.isFocusPlaneTarget;
+	const isOverlayElevating = options.isOverlayElevating;
 
 	const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 	const coarsePointerQuery = window.matchMedia('(pointer: coarse)');
@@ -91,18 +103,25 @@ export function initChromaticFringe(options = {}) {
 	let targetY = focusY;
 	let useEasing = false;
 	let rafId = 0;
+	let focusDepthAnimUntil = 0;
+	let overlayElevating = false;
 
 	const collectTargets = () => {
 		const targets = [];
 		const seen = new Set();
 
-		const push = (element, depth, edge, usable) => {
+		const push = (element, depth, edge, usable, atFocusPlane = false) => {
 			if (seen.has(element) || !isUsableLensElement(element, usable)) {
 				return;
 			}
 
 			seen.add(element);
-			targets.push({ element, depth, edge });
+			targets.push({
+				element,
+				depth,
+				edge,
+				atFocusPlane: Boolean(atFocusPlane || isFocusPlaneTarget?.(element)),
+			});
 		};
 
 		for (const element of document.querySelectorAll('[data-lens-border]')) {
@@ -132,7 +151,7 @@ export function initChromaticFringe(options = {}) {
 			}
 
 			ensureBoxClasses(element, { fadeBorder: fadeDropdownBorder });
-			push(element, depths.dropdown, null);
+			push(element, depths.dropdown, null, undefined, true);
 		}
 
 		if (buttonSelector) {
@@ -170,17 +189,45 @@ export function initChromaticFringe(options = {}) {
 		}
 	};
 
+	const detectOverlayElevating = () => {
+		if (isOverlayElevating) {
+			return Boolean(isOverlayElevating());
+		}
+
+		return Boolean(document.querySelector(dropdownSelector));
+	};
+
+	const noteFocusDepthAnimation = () => {
+		if (reducedMotionQuery.matches) {
+			focusDepthAnimUntil = 0;
+			return;
+		}
+
+		focusDepthAnimUntil = performance.now() + focusDepthAnimMs;
+	};
+
+	const syncOverlayElevation = () => {
+		const next = detectOverlayElevating();
+
+		if (next !== overlayElevating) {
+			overlayElevating = next;
+			noteFocusDepthAnimation();
+		}
+	};
+
 	const applyLensVars = (targets) => {
 		const ref = Math.hypot(window.innerWidth, window.innerHeight) * refDiagonalFraction;
+		const focusDepth = readFocusDepth();
 
-		for (const { element, depth, edge } of targets) {
+		for (const { element, depth, edge, atFocusPlane } of targets) {
+			const effectiveDepth = atFocusPlane ? depth : depth * focusDepth;
 			const rect = element.getBoundingClientRect();
 			const cx = edge === 'right' ? rect.right : rect.left + rect.width / 2;
 			const cy = edge === 'bottom' ? rect.bottom : rect.top + rect.height / 2;
 			const vx = cx - focusX;
 			const vy = cy - focusY;
 			const dist = Math.hypot(vx, vy);
-			const strength = Math.min(ref > 0 ? dist / ref : 0, 1) * depth;
+			const strength = Math.min(ref > 0 ? dist / ref : 0, 1) * effectiveDepth;
 			const offset = strength * maxOffsetPx;
 			const nx = dist > 0 ? vx / dist : 0;
 			const ny = dist > 0 ? vy / dist : 0;
@@ -217,6 +264,8 @@ export function initChromaticFringe(options = {}) {
 			return;
 		}
 
+		syncOverlayElevation();
+
 		const targets = collectTargets();
 
 		if (targets.length === 0) {
@@ -225,13 +274,17 @@ export function initChromaticFringe(options = {}) {
 
 		applyLensVars(targets);
 
-		if (useEasing) {
-			const dx = targetX - focusX;
-			const dy = targetY - focusY;
+		const settlingPointer =
+			useEasing &&
+			(() => {
+				const dx = targetX - focusX;
+				const dy = targetY - focusY;
+				return dx * dx + dy * dy > SETTLE_EPS_SQ;
+			})();
+		const settlingFocusDepth = performance.now() < focusDepthAnimUntil;
 
-			if (dx * dx + dy * dy > SETTLE_EPS_SQ) {
-				schedule();
-			}
+		if (settlingPointer || settlingFocusDepth) {
+			schedule();
 		}
 	};
 
@@ -280,6 +333,13 @@ export function initChromaticFringe(options = {}) {
 		schedule();
 	});
 
+	document.documentElement.addEventListener('transitionrun', (event) => {
+		if (event.propertyName === '--lens-focus-depth') {
+			noteFocusDepthAnimation();
+			schedule();
+		}
+	});
+
 	const observer = new MutationObserver(() => {
 		schedule();
 	});
@@ -298,5 +358,6 @@ export function initChromaticFringe(options = {}) {
 		});
 	}
 
+	overlayElevating = detectOverlayElevating();
 	schedule();
 }

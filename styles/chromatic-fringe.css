@@ -4,9 +4,32 @@
  * "lens-" names keep the optical mechanism metaphor; the package is chromatic-fringe.
  */
 
+@property --lens-focus-depth {
+	syntax: '<number>';
+	inherits: true;
+	initial-value: 1;
+}
+
 :root {
 	--chromatic-fringe-red: #e85a5a;
 	--chromatic-fringe-cyan: #4ab8d8;
+	/**
+	 * Camera / focus-plane depth. Raised (with transition) while a front overlay
+	 * is open so background targets read as deeper via JS × this value.
+	 */
+	--lens-focus-depth: 1;
+	--lens-focus-depth-overlay: 1.35;
+	--lens-focus-depth-duration: 280ms;
+	--lens-focus-depth-easing: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+	transition: --lens-focus-depth var(--lens-focus-depth-duration) var(--lens-focus-depth-easing);
+}
+
+html:has(.dropdown-menu-panel.is-open),
+html:has(.download-format-menu-panel.is-open) {
+	--lens-focus-depth: var(--lens-focus-depth-overlay);
 }
 
 [data-lens-border='bottom'],
@@ -95,8 +118,18 @@
 
 /* --- Box fringe (buttons, dropdown panels, …) --- */
 
+/*
+ * Use relative only as a default containing block. Overlays that are already
+ * fixed/absolute/sticky should re-declare position after this rule (or via a
+ * site override) so the class does not demote them.
+ */
 .chromatic-fringe-box {
 	position: relative;
+}
+
+.chromatic-fringe-box.dropdown-menu-panel,
+.chromatic-fringe-box.download-format-menu-panel {
+	position: fixed;
 }
 
 .chromatic-fringe-box--fade-border {
@@ -130,6 +163,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+	html {
+		transition: none;
+	}
+
 	[data-lens-border='bottom'],
 	[data-lens-border='right'],
 	.chromatic-fringe-box {

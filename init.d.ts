@@ -19,12 +19,27 @@ export type ChromaticFringeOptions = {
 	maxOffsetPx?: number;
 	refDiagonalFraction?: number;
 	touchEase?: number;
+	/**
+	 * How long to keep re-sampling after overlay open/close while
+	 * `--lens-focus-depth` CSS-transitions (default 320).
+	 */
+	focusDepthAnimMs?: number;
 	/** Extra `document.documentElement` attributes that should re-scan. */
 	rootAttributeFilter?: string[];
 	/** Gate for `[data-lens-border]` targets (return false to skip). */
 	isMarkedTargetActive?: (element: HTMLElement) => boolean;
 	/** When true, ignore `aria-hidden` on that marked element. */
 	markedIgnoreAriaHidden?: (element: HTMLElement) => boolean;
+	/**
+	 * Targets on the current focus plane (do not multiply by `--lens-focus-depth`).
+	 * Open dropdown panels are treated as focus-plane by default.
+	 */
+	isFocusPlaneTarget?: (element: HTMLElement) => boolean;
+	/**
+	 * Extra elevated-overlay detection beyond matching `dropdownSelector`
+	 * (e.g. mobile menu open). Used to keep RAF alive for depth easing.
+	 */
+	isOverlayElevating?: () => boolean;
 };
 
 export declare function initChromaticFringe(options?: ChromaticFringeOptions): void;
