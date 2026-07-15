@@ -1,0 +1,43 @@
+{
+  "name": "@umamichi-ui/chromatic-fringe",
+  "version": "0.1.0",
+  "description": "Pointer-driven chromatic fringe (lens-like RGB edge split) for Umamichi UI borders.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/umamichi-ui/chromatic-fringe.git"
+  },
+  "homepage": "https://github.com/umamichi-ui/chromatic-fringe#readme",
+  "bugs": {
+    "url": "https://github.com/umamichi-ui/chromatic-fringe/issues"
+  },
+  "keywords": [
+    "css",
+    "chromatic-aberration",
+    "lens",
+    "ui",
+    "umamichi"
+  ],
+  "files": [
+    "styles",
+    "init.js",
+    "init.d.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./styles/index.css",
+    "./styles.css": "./styles/index.css",
+    "./init": {
+      "types": "./init.d.ts",
+      "import": "./init.js"
+    }
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

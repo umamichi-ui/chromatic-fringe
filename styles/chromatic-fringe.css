@@ -1,0 +1,141 @@
+/**
+ * Chromatic fringe primitives.
+ * Offset vars (--lens-*) are written by initChromaticFringe().
+ * "lens-" names keep the optical mechanism metaphor; the package is chromatic-fringe.
+ */
+
+:root {
+	--chromatic-fringe-red: #e85a5a;
+	--chromatic-fringe-cyan: #4ab8d8;
+}
+
+[data-lens-border='bottom'],
+[data-lens-border='right'],
+.chromatic-fringe-box {
+	--lens-ox: 0px;
+	--lens-oy: 0px;
+	--lens-main-a: 1;
+	--lens-ghost-a: 0;
+}
+
+/* --- Bottom hairline --- */
+
+[data-lens-border='bottom'] {
+	overflow-x: clip;
+	border-bottom: 1px solid
+		color-mix(
+			in srgb,
+			var(--chromatic-fringe-line, var(--site-header-border, var(--site-border)))
+				calc(var(--lens-main-a) * 100%),
+			transparent
+		);
+}
+
+[data-lens-border='bottom']::before,
+[data-lens-border='bottom']::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: 0;
+	border-bottom: 1px solid transparent;
+	pointer-events: none;
+	opacity: var(--lens-ghost-a);
+	z-index: 2;
+}
+
+[data-lens-border='bottom']::before {
+	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
+	transform: translate(var(--lens-ox), var(--lens-oy));
+}
+
+[data-lens-border='bottom']::after {
+	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
+	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
+}
+
+/* --- Right seam --- */
+
+[data-lens-border='right'] {
+	overflow-x: clip;
+	overflow-y: clip;
+	border-right: 1px solid
+		color-mix(
+			in srgb,
+			var(--chromatic-fringe-line, var(--site-header-border, var(--site-border)))
+				calc(var(--lens-main-a) * 100%),
+			transparent
+		);
+}
+
+[data-lens-border='right']::before,
+[data-lens-border='right']::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: -1px;
+	width: 0;
+	border-right: 1px solid transparent;
+	pointer-events: none;
+	opacity: var(--lens-ghost-a);
+	z-index: 3;
+}
+
+[data-lens-border='right']::before {
+	border-right-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
+	transform: translate(var(--lens-ox), var(--lens-oy));
+}
+
+[data-lens-border='right']::after {
+	border-right-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
+	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
+}
+
+/* --- Box fringe (buttons, dropdown panels, …) --- */
+
+.chromatic-fringe-box {
+	position: relative;
+}
+
+.chromatic-fringe-box--fade-border {
+	border-color: color-mix(
+		in srgb,
+		var(--chromatic-fringe-border, var(--site-border)) calc(var(--lens-main-a) * 100%),
+		transparent
+	);
+}
+
+.chromatic-fringe-box::before,
+.chromatic-fringe-box::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: 1px solid transparent;
+	border-radius: inherit;
+	pointer-events: none;
+	opacity: var(--lens-ghost-a);
+	box-sizing: border-box;
+}
+
+.chromatic-fringe-box::before {
+	border-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
+	transform: translate(var(--lens-ox), var(--lens-oy));
+}
+
+.chromatic-fringe-box::after {
+	border-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
+	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-lens-border='bottom'],
+	[data-lens-border='right'],
+	.chromatic-fringe-box {
+		--lens-ox: 0px !important;
+		--lens-oy: 0px !important;
+		--lens-main-a: 1 !important;
+		--lens-ghost-a: 0 !important;
+	}
+}
