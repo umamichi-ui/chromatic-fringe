@@ -31,15 +31,19 @@ export type ChromaticFringeOptions = {
 	/** When true, ignore `aria-hidden` on that marked element. */
 	markedIgnoreAriaHidden?: (element: HTMLElement) => boolean;
 	/**
-	 * Targets on the current focus plane (do not multiply by `--lens-focus-depth`).
-	 * Open dropdown panels are treated as focus-plane by default.
-	 */
-	isFocusPlaneTarget?: (element: HTMLElement) => boolean;
-	/**
 	 * Extra elevated-overlay detection beyond matching `dropdownSelector`
 	 * (e.g. mobile menu open). Used to keep RAF alive for depth easing.
 	 */
 	isOverlayElevating?: () => boolean;
 };
+
+/**
+ * `d_eff = d + |d - F| - |d - F0|`. When `F === F0`, returns `d`.
+ */
+export declare function effectiveLensDepth(
+	surfaceDepth: number,
+	focusDepth: number,
+	restFocusDepth?: number,
+): number;
 
 export declare function initChromaticFringe(options?: ChromaticFringeOptions): void;

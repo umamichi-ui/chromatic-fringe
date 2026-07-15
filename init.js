@@ -16,6 +16,8 @@ const DEFAULT_TOUCH_EASE = 0.14;
 const SETTLE_EPS_SQ = 0.25;
 /** Keep re-applying while CSS `--lens-focus-depth` transitions. */
 const DEFAULT_FOCUS_DEPTH_ANIM_MS = 320;
+/** Rest / page-plane focus (matches CSS `--lens-focus-depth-rest`). */
+const DEFAULT_FOCUS_DEPTH_REST = 1;
 
 function clearLensVars(element) {
 	element.style.removeProperty('--lens-ox');
@@ -52,11 +54,35 @@ function ensureBoxClasses(element, options) {
 	}
 }
 
-function readFocusDepth() {
-	const raw = getComputedStyle(document.documentElement).getPropertyValue('--lens-focus-depth').trim();
+function readCssNumber(name, fallback) {
+	const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 	const value = Number(raw);
 
-	return Number.isFinite(value) && value > 0 ? value : 1;
+	return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/**
+ * Equivalent lens depth from surface depth `d` and camera focus `F`.
+ *
+ * Optical reading: fringe scales with absolute defocus from the focus plane.
+ * Relative to a rest focus `F0` (page plane), the change in defocus is
+ * `|d - F| - |d - F0|`. Adding the element's rest fringe `d` gives:
+ *
+ *   d_eff(d, F) = d + |d - F| - |d - F0|
+ *
+ * Special case: when `F === F0` (default closed UI), `d_eff === d`.
+ *
+ * @param {number} surfaceDepth
+ * @param {number} focusDepth
+ * @param {number} restFocusDepth
+ */
+export function effectiveLensDepth(surfaceDepth, focusDepth, restFocusDepth = DEFAULT_FOCUS_DEPTH_REST) {
+	const d = surfaceDepth;
+	const F = focusDepth;
+	const F0 = restFocusDepth;
+	const value = d + Math.abs(d - F) - Math.abs(d - F0);
+
+	return value > 0 ? value : 0;
 }
 
 /**
@@ -91,7 +117,6 @@ export function initChromaticFringe(options = {}) {
 	const rootAttributeFilter = options.rootAttributeFilter ?? [];
 	const isMarkedTargetActive = options.isMarkedTargetActive;
 	const markedIgnoreAriaHidden = options.markedIgnoreAriaHidden;
-	const isFocusPlaneTarget = options.isFocusPlaneTarget;
 	const isOverlayElevating = options.isOverlayElevating;
 
 	const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -110,18 +135,13 @@ export function initChromaticFringe(options = {}) {
 		const targets = [];
 		const seen = new Set();
 
-		const push = (element, depth, edge, usable, atFocusPlane = false) => {
+		const push = (element, depth, edge, usable) => {
 			if (seen.has(element) || !isUsableLensElement(element, usable)) {
 				return;
 			}
 
 			seen.add(element);
-			targets.push({
-				element,
-				depth,
-				edge,
-				atFocusPlane: Boolean(atFocusPlane || isFocusPlaneTarget?.(element)),
-			});
+			targets.push({ element, depth, edge });
 		};
 
 		for (const element of document.querySelectorAll('[data-lens-border]')) {
@@ -151,7 +171,7 @@ export function initChromaticFringe(options = {}) {
 			}
 
 			ensureBoxClasses(element, { fadeBorder: fadeDropdownBorder });
-			push(element, depths.dropdown, null, undefined, true);
+			push(element, depths.dropdown, null);
 		}
 
 		if (buttonSelector) {
@@ -217,10 +237,11 @@ export function initChromaticFringe(options = {}) {
 
 	const applyLensVars = (targets) => {
 		const ref = Math.hypot(window.innerWidth, window.innerHeight) * refDiagonalFraction;
-		const focusDepth = readFocusDepth();
+		const focusDepth = readCssNumber('--lens-focus-depth', DEFAULT_FOCUS_DEPTH_REST);
+		const restFocusDepth = readCssNumber('--lens-focus-depth-rest', DEFAULT_FOCUS_DEPTH_REST);
 
-		for (const { element, depth, edge, atFocusPlane } of targets) {
-			const effectiveDepth = atFocusPlane ? depth : depth * focusDepth;
+		for (const { element, depth, edge } of targets) {
+			const effectiveDepth = effectiveLensDepth(depth, focusDepth, restFocusDepth);
 			const rect = element.getBoundingClientRect();
 			const cx = edge === 'right' ? rect.right : rect.left + rect.width / 2;
 			const cy = edge === 'bottom' ? rect.bottom : rect.top + rect.height / 2;

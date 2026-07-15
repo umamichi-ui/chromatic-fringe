@@ -32,9 +32,15 @@ initChromaticFringe({
 
 ### Focus depth (`--lens-focus-depth`)
 
-Global CSS variable on `html` (registered with `@property`, transitions by default). While an open floating menu is present (`:has(.dropdown-menu-panel.is-open)` / download-format equivalent), it eases to `--lens-focus-depth-overlay` (default `1.35`).
+Global camera focus `F` on `html` (registered with `@property`, transitions by default). Rest / page plane is `--lens-focus-depth-rest` (`F0`, default `1`). While an open floating menu is present, `F` eases to `--lens-focus-depth-overlay` (default `1.35`).
 
-JS multiplies **background** target depths by the live computed value. Open menus sit on the focus plane and keep their configured depth. Site overlays (e.g. mobile menu) can raise the same variable and pass `isFocusPlaneTarget` / `isOverlayElevating`.
+Every target with surface depth `d` uses the same equivalent depth:
+
+```text
+d_eff = d + |d - F| - |d - F0|
+```
+
+When `F = F0`, this collapses to `d_eff = d`. No per-object “focus plane” flag: place a surface near focus by giving it `d ≈ F` (e.g. dropdown depth `1.35` matching the overlay focus).
 
 ### Marked edges
 
@@ -42,7 +48,7 @@ JS multiplies **background** target depths by the live computed value. Open menu
 |---|---|
 | `data-lens-border="bottom"` | Bottom hairline + fringe (`overflow-x: clip`) |
 | `data-lens-border="right"` | Right seam + fringe (`overflow-x/y: clip`) |
-| `data-lens-depth="0.9"` | Strength multiplier (optional) |
+| `data-lens-depth="0.9"` | Surface depth `d` (optional) |
 
 Line color: `--chromatic-fringe-line` (falls back to `--site-header-border`, then `--site-border`).
 

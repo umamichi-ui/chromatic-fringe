@@ -14,10 +14,13 @@
 	--chromatic-fringe-red: #e85a5a;
 	--chromatic-fringe-cyan: #4ab8d8;
 	/**
-	 * Camera / focus-plane depth. Raised (with transition) while a front overlay
-	 * is open so background targets read as deeper via JS × this value.
+	 * Camera focus depth `F`. Rest plane is `--lens-focus-depth-rest` (`F0`).
+	 * Equivalent fringe depth for a surface at `d`:
+	 *   d_eff = d + |d - F| - |d - F0|
+	 * When F = F0 (default), d_eff = d.
 	 */
-	--lens-focus-depth: 1;
+	--lens-focus-depth-rest: 1;
+	--lens-focus-depth: var(--lens-focus-depth-rest);
 	--lens-focus-depth-overlay: 1.35;
 	--lens-focus-depth-duration: 280ms;
 	--lens-focus-depth-easing: cubic-bezier(0.22, 1, 0.36, 1);

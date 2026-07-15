@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Unified equivalent depth for every target:
+  `d_eff = d + |d - F| - |d - F0|` where `F` is `--lens-focus-depth` and `F0` is `--lens-focus-depth-rest` (default `1`).
+  When `F = F0`, `d_eff = d` (previous rest-state behavior).
+- Removed focus-plane exemption / `isFocusPlaneTarget` — overlays are not special-cased; aligning `depths.dropdown` with `--lens-focus-depth-overlay` places the menu near focus by depth numbers alone.
+- Export `effectiveLensDepth()`.
+
 ## 0.2.0
 
 - Add global `--lens-focus-depth` (with `@property` + transition). Open dropdowns raise it via `:has(.…is-open)`; JS multiplies background target depth by the live computed value while focus-plane overlays (open menus) keep their base depth.
