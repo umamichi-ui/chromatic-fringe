@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3
+
+- Revert 0.4.1 (`pointerup` focus snap) and 0.4.2 (rect cache, pseudo-element
+  transition removal). Mobile pane-close overshoot was a site timing issue
+  (`--lens-focus-depth` held through `data-mobile-menu-closing`), not pointer
+  lerp or per-frame rect reads.
+
 ## 0.4.2
 
 - Cache element rects and refresh them only on pointer move / scroll / resize.

@@ -197,13 +197,12 @@ html:has(.download-format-menu-panel.is-open) {
 	--lens-interaction-scale: var(--chromatic-fringe-interaction-active);
 }
 
-/*
- * No transition on the pseudo-element transform/opacity: those carry the
- * per-frame pointer offset (--lens-ox/oy) written by RAF, and transitioning
- * them would lag the pointer and overshoot on stop. Hover / press dampening
- * stays smooth because --lens-interaction-scale is a registered @property
- * transitioned on the box above.
- */
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay)::before,
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay)::after {
+	transition:
+		transform var(--chromatic-fringe-interaction-duration) var(--chromatic-fringe-interaction-easing),
+		opacity var(--chromatic-fringe-interaction-duration) var(--chromatic-fringe-interaction-easing);
+}
 
 .chromatic-fringe-box--fade-border:not(.chromatic-fringe-box--overlay) {
 	border-color: color-mix(

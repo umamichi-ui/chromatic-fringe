@@ -145,9 +145,6 @@ export function initChromaticFringe(options = {}) {
 	let rafId = 0;
 	let focusDepthAnimUntil = 0;
 	let overlayElevating = false;
-	/** Per-element rect cache; refreshed only on pointer move / scroll / resize. */
-	const rectCache = new WeakMap();
-	let rectsDirty = true;
 
 	const collectTargets = () => {
 		const targets = [];
@@ -253,25 +250,14 @@ export function initChromaticFringe(options = {}) {
 		}
 	};
 
-	const applyLensVars = (targets, refreshRects) => {
+	const applyLensVars = (targets) => {
 		const ref = Math.hypot(window.innerWidth, window.innerHeight) * refDiagonalFraction;
 		const focusDepth = readCssNumber('--lens-focus-depth', DEFAULT_FOCUS_DEPTH_REST);
 		const restFocusDepth = readCssNumber('--lens-focus-depth-rest', DEFAULT_FOCUS_DEPTH_REST);
 
 		for (const { element, depth, edge } of targets) {
 			const effectiveDepth = effectiveLensDepth(depth, focusDepth, restFocusDepth);
-			/*
-			 * Reuse the cached rect unless the pointer moved or layout changed.
-			 * A focus-depth-only frame must not re-read a rect that a CSS layout
-			 * transition (e.g. mobile pane slide) is animating, or the fringe
-			 * offset sweeps with the element and looks like overshoot.
-			 */
-			let rect = refreshRects ? undefined : rectCache.get(element);
-
-			if (!rect) {
-				rect = element.getBoundingClientRect();
-				rectCache.set(element, rect);
-			}
+			const rect = element.getBoundingClientRect();
 			const cx = edge === 'right' ? rect.right : rect.left + rect.width / 2;
 			const cy = edge === 'bottom' ? rect.bottom : rect.top + rect.height / 2;
 			const vx = cx - focusX;
@@ -301,9 +287,6 @@ export function initChromaticFringe(options = {}) {
 	const tick = () => {
 		rafId = 0;
 
-		const prevX = focusX;
-		const prevY = focusY;
-
 		if (useEasing) {
 			focusX += (targetX - focusX) * touchEase;
 			focusY += (targetY - focusY) * touchEase;
@@ -325,11 +308,7 @@ export function initChromaticFringe(options = {}) {
 			return;
 		}
 
-		const focusMoved = Math.abs(focusX - prevX) > 0.01 || Math.abs(focusY - prevY) > 0.01;
-		const refreshRects = rectsDirty || focusMoved;
-		rectsDirty = false;
-
-		applyLensVars(targets, refreshRects);
+		applyLensVars(targets);
 
 		const settlingPointer =
 			useEasing &&
@@ -358,38 +337,15 @@ export function initChromaticFringe(options = {}) {
 		schedule();
 	};
 
-	const snapPointerFocus = () => {
-		focusX = targetX;
-		focusY = targetY;
-		schedule();
-	};
-
 	window.addEventListener('pointermove', setPointerTarget, { passive: true });
 	window.addEventListener('pointerdown', setPointerTarget, { passive: true });
-	/*
-	 * Ease only while the finger is down. Close-menu is wired on `click`
-	 * (after pointerup); if lerp kept running, RAF would re-sample fringe
-	 * through the pane slide and look like a directional sweep then settle.
-	 */
-	window.addEventListener('pointerup', snapPointerFocus, { passive: true });
-	window.addEventListener('pointercancel', snapPointerFocus, { passive: true });
 
 	window.addEventListener(
 		'resize',
 		() => {
-			rectsDirty = true;
 			schedule();
 		},
 		{ passive: true },
-	);
-
-	window.addEventListener(
-		'scroll',
-		() => {
-			rectsDirty = true;
-			schedule();
-		},
-		{ passive: true, capture: true },
 	);
 
 	document.addEventListener('visibilitychange', () => {
