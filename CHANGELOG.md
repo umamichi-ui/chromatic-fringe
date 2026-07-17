@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Snap the focus point on `pointerup` / `pointercancel` so touch easing does not
+  keep re-sampling fringe through layout transitions (e.g. mobile pane close).
+
 ## 0.4.0
 
 - Fix `effectiveLensDepth()` to match documented optics:

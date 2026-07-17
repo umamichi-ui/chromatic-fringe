@@ -337,8 +337,21 @@ export function initChromaticFringe(options = {}) {
 		schedule();
 	};
 
+	const snapPointerFocus = () => {
+		focusX = targetX;
+		focusY = targetY;
+		schedule();
+	};
+
 	window.addEventListener('pointermove', setPointerTarget, { passive: true });
 	window.addEventListener('pointerdown', setPointerTarget, { passive: true });
+	/*
+	 * Ease only while the finger is down. Close-menu is wired on `click`
+	 * (after pointerup); if lerp kept running, RAF would re-sample fringe
+	 * through the pane slide and look like a directional sweep then settle.
+	 */
+	window.addEventListener('pointerup', snapPointerFocus, { passive: true });
+	window.addEventListener('pointercancel', snapPointerFocus, { passive: true });
 
 	window.addEventListener(
 		'resize',
