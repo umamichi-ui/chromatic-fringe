@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2
+
+- Cache element rects and refresh them only on pointer move / scroll / resize.
+  A focus-depth-only frame (e.g. mobile pane close) no longer re-reads a rect
+  that a CSS layout transition is animating, so the fringe stops sweeping /
+  overshooting on the header hairline, page buttons, and prev/next cards.
+- Drop the `transform` / `opacity` transition on box pseudo-elements; it lagged
+  the per-frame pointer offset and overshot on stop. Hover / press dampening
+  stays smooth via the `--lens-interaction-scale` `@property` transition.
+
 ## 0.4.1
 
 - Snap the focus point on `pointerup` / `pointercancel` so touch easing does not

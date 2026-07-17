@@ -145,6 +145,9 @@ export function initChromaticFringe(options = {}) {
 	let rafId = 0;
 	let focusDepthAnimUntil = 0;
 	let overlayElevating = false;
+	/** Per-element rect cache; refreshed only on pointer move / scroll / resize. */
+	const rectCache = new WeakMap();
+	let rectsDirty = true;
 
 	const collectTargets = () => {
 		const targets = [];
@@ -250,14 +253,25 @@ export function initChromaticFringe(options = {}) {
 		}
 	};
 
-	const applyLensVars = (targets) => {
+	const applyLensVars = (targets, refreshRects) => {
 		const ref = Math.hypot(window.innerWidth, window.innerHeight) * refDiagonalFraction;
 		const focusDepth = readCssNumber('--lens-focus-depth', DEFAULT_FOCUS_DEPTH_REST);
 		const restFocusDepth = readCssNumber('--lens-focus-depth-rest', DEFAULT_FOCUS_DEPTH_REST);
 
 		for (const { element, depth, edge } of targets) {
 			const effectiveDepth = effectiveLensDepth(depth, focusDepth, restFocusDepth);
-			const rect = element.getBoundingClientRect();
+			/*
+			 * Reuse the cached rect unless the pointer moved or layout changed.
+			 * A focus-depth-only frame must not re-read a rect that a CSS layout
+			 * transition (e.g. mobile pane slide) is animating, or the fringe
+			 * offset sweeps with the element and looks like overshoot.
+			 */
+			let rect = refreshRects ? undefined : rectCache.get(element);
+
+			if (!rect) {
+				rect = element.getBoundingClientRect();
+				rectCache.set(element, rect);
+			}
 			const cx = edge === 'right' ? rect.right : rect.left + rect.width / 2;
 			const cy = edge === 'bottom' ? rect.bottom : rect.top + rect.height / 2;
 			const vx = cx - focusX;
@@ -287,6 +301,9 @@ export function initChromaticFringe(options = {}) {
 	const tick = () => {
 		rafId = 0;
 
+		const prevX = focusX;
+		const prevY = focusY;
+
 		if (useEasing) {
 			focusX += (targetX - focusX) * touchEase;
 			focusY += (targetY - focusY) * touchEase;
@@ -308,7 +325,11 @@ export function initChromaticFringe(options = {}) {
 			return;
 		}
 
-		applyLensVars(targets);
+		const focusMoved = Math.abs(focusX - prevX) > 0.01 || Math.abs(focusY - prevY) > 0.01;
+		const refreshRects = rectsDirty || focusMoved;
+		rectsDirty = false;
+
+		applyLensVars(targets, refreshRects);
 
 		const settlingPointer =
 			useEasing &&
@@ -356,9 +377,19 @@ export function initChromaticFringe(options = {}) {
 	window.addEventListener(
 		'resize',
 		() => {
+			rectsDirty = true;
 			schedule();
 		},
 		{ passive: true },
+	);
+
+	window.addEventListener(
+		'scroll',
+		() => {
+			rectsDirty = true;
+			schedule();
+		},
+		{ passive: true, capture: true },
 	);
 
 	document.addEventListener('visibilitychange', () => {
