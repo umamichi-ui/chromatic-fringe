@@ -10,6 +10,12 @@
 	initial-value: 1;
 }
 
+@property --lens-interaction-scale {
+	syntax: '<number>';
+	inherits: true;
+	initial-value: 1;
+}
+
 :root {
 	--chromatic-fringe-red: #e85a5a;
 	--chromatic-fringe-cyan: #4ab8d8;
@@ -24,6 +30,11 @@
 	--lens-focus-depth-overlay: 1.35;
 	--lens-focus-depth-duration: 280ms;
 	--lens-focus-depth-easing: cubic-bezier(0.22, 1, 0.36, 1);
+	/** Press / hover depth dampening on page controls (not overlays). */
+	--chromatic-fringe-interaction-duration: 140ms;
+	--chromatic-fringe-interaction-easing: cubic-bezier(0.23, 1, 0.32, 1);
+	--chromatic-fringe-interaction-hover: 0.42;
+	--chromatic-fringe-interaction-active: 0.16;
 }
 
 html {
@@ -72,12 +83,12 @@ html:has(.download-format-menu-panel.is-open) {
 }
 
 [data-lens-border='bottom']::before {
-	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
+	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-red) 55%, transparent);
 	transform: translate(var(--lens-ox), var(--lens-oy));
 }
 
 [data-lens-border='bottom']::after {
-	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
+	border-bottom-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 55%, transparent);
 	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
 }
 
@@ -110,12 +121,12 @@ html:has(.download-format-menu-panel.is-open) {
 }
 
 [data-lens-border='right']::before {
-	border-right-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
+	border-right-color: color-mix(in srgb, var(--chromatic-fringe-red) 55%, transparent);
 	transform: translate(var(--lens-ox), var(--lens-oy));
 }
 
 [data-lens-border='right']::after {
-	border-right-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
+	border-right-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 55%, transparent);
 	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
 }
 
@@ -130,8 +141,7 @@ html:has(.download-format-menu-panel.is-open) {
 	position: relative;
 }
 
-.chromatic-fringe-box.dropdown-menu-panel,
-.chromatic-fringe-box.download-format-menu-panel {
+.chromatic-fringe-box.chromatic-fringe-box--overlay {
 	position: fixed;
 }
 
@@ -151,18 +161,58 @@ html:has(.download-format-menu-panel.is-open) {
 	border: 1px solid transparent;
 	border-radius: inherit;
 	pointer-events: none;
-	opacity: var(--lens-ghost-a);
+	opacity: calc(var(--lens-ghost-a) * var(--lens-interaction-scale));
 	box-sizing: border-box;
 }
 
 .chromatic-fringe-box::before {
-	border-color: color-mix(in srgb, var(--chromatic-fringe-red) 60%, transparent);
-	transform: translate(var(--lens-ox), var(--lens-oy));
+	border-color: color-mix(in srgb, var(--chromatic-fringe-red) 55%, transparent);
+	transform: translate(
+		calc(var(--lens-ox) * var(--lens-interaction-scale)),
+		calc(var(--lens-oy) * var(--lens-interaction-scale))
+	);
 }
 
 .chromatic-fringe-box::after {
-	border-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 60%, transparent);
-	transform: translate(calc(var(--lens-ox) * -1), calc(var(--lens-oy) * -1));
+	border-color: color-mix(in srgb, var(--chromatic-fringe-cyan) 55%, transparent);
+	transform: translate(
+		calc(var(--lens-ox) * -1 * var(--lens-interaction-scale)),
+		calc(var(--lens-oy) * -1 * var(--lens-interaction-scale))
+	);
+}
+
+/* Page controls: shallow fringe on hover / press (high-frequency — keep subtle). */
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay) {
+	--lens-interaction-scale: 1;
+	transition:
+		--lens-interaction-scale var(--chromatic-fringe-interaction-duration)
+			var(--chromatic-fringe-interaction-easing);
+}
+
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay):is(:hover, :focus-visible) {
+	--lens-interaction-scale: var(--chromatic-fringe-interaction-hover);
+}
+
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay):active {
+	--lens-interaction-scale: var(--chromatic-fringe-interaction-active);
+}
+
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay)::before,
+.chromatic-fringe-box:not(.chromatic-fringe-box--overlay)::after {
+	transition:
+		transform var(--chromatic-fringe-interaction-duration) var(--chromatic-fringe-interaction-easing),
+		opacity var(--chromatic-fringe-interaction-duration) var(--chromatic-fringe-interaction-easing);
+}
+
+.chromatic-fringe-box--fade-border:not(.chromatic-fringe-box--overlay) {
+	border-color: color-mix(
+		in srgb,
+		var(--chromatic-fringe-border, var(--site-border))
+			calc((1 - (1 - var(--lens-main-a)) * var(--lens-interaction-scale)) * 100%),
+		transparent
+	);
+	transition: border-color var(--chromatic-fringe-interaction-duration)
+		var(--chromatic-fringe-interaction-easing);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -177,5 +227,6 @@ html:has(.download-format-menu-panel.is-open) {
 		--lens-oy: 0px !important;
 		--lens-main-a: 1 !important;
 		--lens-ghost-a: 0 !important;
+		--lens-interaction-scale: 1 !important;
 	}
 }

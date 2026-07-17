@@ -1,6 +1,7 @@
 const INIT_KEY = '__umamichiChromaticFringeInit';
 
 const BOX_CLASS = 'chromatic-fringe-box';
+const OVERLAY_CLASS = 'chromatic-fringe-box--overlay';
 const FADE_BORDER_CLASS = 'chromatic-fringe-box--fade-border';
 
 const DEFAULT_DROPDOWN_SELECTOR =
@@ -12,7 +13,8 @@ const DEFAULT_DEPTHS = {
 };
 const DEFAULT_MAX_OFFSET_PX = 1.75;
 const DEFAULT_REF_DIAGONAL_FRACTION = 0.35;
-const DEFAULT_TOUCH_EASE = 0.14;
+/** Critically damped lerp for coarse pointers (Apple-style: no overshoot). */
+const DEFAULT_TOUCH_EASE = 0.18;
 const SETTLE_EPS_SQ = 0.25;
 /** Keep re-applying while CSS `--lens-focus-depth` transitions. */
 const DEFAULT_FOCUS_DEPTH_ANIM_MS = 320;
@@ -49,6 +51,10 @@ function parseLensEdge(value) {
 function ensureBoxClasses(element, options) {
 	element.classList.add(BOX_CLASS);
 
+	if (options?.overlay) {
+		element.classList.add(OVERLAY_CLASS);
+	}
+
 	if (options?.fadeBorder) {
 		element.classList.add(FADE_BORDER_CLASS);
 	}
@@ -64,13 +70,13 @@ function readCssNumber(name, fallback) {
 /**
  * Equivalent lens depth from surface depth `d` and camera focus `F`.
  *
- * Optical reading: fringe scales with absolute defocus from the focus plane.
- * Relative to a rest focus `F0` (page plane), the change in defocus is
- * `|d - F| - |d - F0|`. Adding the element's rest fringe `d` gives:
+ * Rest case (`F === F0`): `d_eff = d`.
  *
- *   d_eff(d, F) = d + |d - F| - |d - F0|
+ * When focus moves:
  *
- * Special case: when `F === F0` (default closed UI), `d_eff === d`.
+ *   d_eff = d + |d − F| − |d − F0|
+ *
+ * Surfaces on the focus plane (`d ≈ F`) keep low fringe; defocus deepens fringe.
  *
  * @param {number} surfaceDepth
  * @param {number} focusDepth
@@ -80,6 +86,15 @@ export function effectiveLensDepth(surfaceDepth, focusDepth, restFocusDepth = DE
 	const d = surfaceDepth;
 	const F = focusDepth;
 	const F0 = restFocusDepth;
+
+	if (!(d > 0)) {
+		return 0;
+	}
+
+	if (Math.abs(F - F0) < 1e-9) {
+		return d;
+	}
+
 	const value = d + Math.abs(d - F) - Math.abs(d - F0);
 
 	return value > 0 ? value : 0;
@@ -170,7 +185,7 @@ export function initChromaticFringe(options = {}) {
 				continue;
 			}
 
-			ensureBoxClasses(element, { fadeBorder: fadeDropdownBorder });
+			ensureBoxClasses(element, { overlay: true, fadeBorder: fadeDropdownBorder });
 			push(element, depths.dropdown, null);
 		}
 
@@ -256,8 +271,8 @@ export function initChromaticFringe(options = {}) {
 
 			element.style.setProperty('--lens-ox', `${nx * offset}px`);
 			element.style.setProperty('--lens-oy', `${ny * offset}px`);
-			element.style.setProperty('--lens-main-a', String(1 - t * 0.55));
-			element.style.setProperty('--lens-ghost-a', String(t * 0.4));
+			element.style.setProperty('--lens-main-a', String(1 - t * 0.5));
+			element.style.setProperty('--lens-ghost-a', String(t * 0.36));
 		}
 	};
 

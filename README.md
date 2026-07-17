@@ -54,7 +54,16 @@ Line color: `--chromatic-fringe-line` (falls back to `--site-header-border`, the
 
 ### Box fringe
 
-JS adds `.chromatic-fringe-box` to matched buttons / open dropdowns. Optional fade of an existing gray border via `.chromatic-fringe-box--fade-border` and `--chromatic-fringe-border`. Floating menu panels keep `position: fixed`.
+JS adds `.chromatic-fringe-box` to matched buttons / open dropdowns. Open floating menus also get `.chromatic-fringe-box--overlay` (`position: fixed`). Optional fade of an existing gray border via `.chromatic-fringe-box--fade-border` and `--chromatic-fringe-border`.
+
+Page controls (non-overlay boxes) shallow the fringe on `:hover`, `:focus-visible`, and `:active` via `--lens-interaction-scale`. Tune with:
+
+| Token | Default |
+|---|---|
+| `--chromatic-fringe-interaction-duration` | `140ms` |
+| `--chromatic-fringe-interaction-easing` | `cubic-bezier(0.23, 1, 0.32, 1)` |
+| `--chromatic-fringe-interaction-hover` | `0.42` |
+| `--chromatic-fringe-interaction-active` | `0.16` |
 
 Ghost colors: `--chromatic-fringe-red`, `--chromatic-fringe-cyan`.
 

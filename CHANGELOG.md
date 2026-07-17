@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- Fix `effectiveLensDepth()` to match documented optics:
+  `d_eff = d + |d - F| - |d - F0|` (was a ratio approximation in 0.3.0).
+- Move page-control hover / press depth dampening into package CSS via
+  `--lens-interaction-scale` (`@property`) and `--chromatic-fringe-interaction-*` tokens.
+- Floating overlays get `.chromatic-fringe-box--overlay` (fixed position + no interaction dampening).
+- Slightly subtler ghost intensity (high-frequency pointer tracking); touch lerp default `0.18`.
+
 ## 0.3.0
 
 - Unified equivalent depth for every target:
